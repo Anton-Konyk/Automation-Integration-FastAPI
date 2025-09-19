@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# IDE/OS
+.idea/
+.vscode/
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Env & local data
+.env
+*.env
+data/
+*.csv
+
+# Docker/compose files themselves (не нужны в образе)
+docker-compose.yml
+Dockerfile
