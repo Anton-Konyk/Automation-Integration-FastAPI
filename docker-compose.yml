@@ -1,0 +1,66 @@
+version: "3.9"
+
+x-common-env: &common-env
+  TZ: ${TZ}
+  CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+  CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
+  USERS_API_URL: ${USERS_API_URL}
+  CSV_DIR: ${CSV_DIR}
+  FETCH_EVERY_MINUTES: ${FETCH_EVERY_MINUTES}
+
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: task2-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  web:
+    build: .
+    container_name: task2-web
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    environment:
+      <<: *common-env
+    volumes:
+      - data_vol:/data
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build: .
+    container_name: task2-worker
+    command: celery -A app.celery_app.celery worker --loglevel=info --queues=default
+    environment:
+      <<: *common-env
+    volumes:
+      - data_vol:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  beat:
+    build: .
+    container_name: task2-beat
+    command: celery -A app.celery_app.celery beat --loglevel=info
+    environment:
+      <<: *common-env
+    volumes:
+      - data_vol:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  data_vol:
